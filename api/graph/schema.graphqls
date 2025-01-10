@@ -18,6 +18,7 @@ type Subscription {
 
 type Query {
   channels: [Channel!]!
+  messages(channelID: ID!): [Message!]!
 }
 
 type Mutation {

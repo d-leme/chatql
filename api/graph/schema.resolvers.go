@@ -6,7 +6,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/d-leme/chatql/graph/model"
@@ -23,8 +22,8 @@ func (r *mutationResolver) AddMessage(ctx context.Context, channelID string, con
 	}
 
 	r.MU.Lock()
-	if _, err := r.DB.Exec("INSERT INTO messages (id, content, created_at, channel_id) VALUES (?, ?, ?, ?)",
-		message.ID, message.Content, message.CreatedAt, channelID); err != nil {
+	if _, err := r.DB.Exec("INSERT INTO messages (id, content, owner, created_at, channel_id) VALUES (?, ?, ?, ?, ?)",
+		message.ID, message.Content, message.Owner, message.CreatedAt, channelID); err != nil {
 		r.MU.Unlock()
 		return nil, err
 	}
@@ -79,12 +78,32 @@ func (r *queryResolver) Channels(ctx context.Context) ([]*model.Channel, error) 
 	return channels, nil
 }
 
+// Messages is the resolver for the messages field.
+func (r *queryResolver) Messages(ctx context.Context, channelID string) ([]*model.Message, error) {
+	r.MU.Lock()
+	rows, err := r.DB.Query("SELECT id, content, owner, created_at FROM messages WHERE channel_id = ?", channelID)
+	r.MU.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []*model.Message
+	for rows.Next() {
+		msg := &model.Message{}
+		if err := rows.Scan(&msg.ID, &msg.Content, &msg.Owner, &msg.CreatedAt); err != nil {
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+
+	return messages, nil
+}
+
 // MessageAdded is the resolver for the messageAdded field.
 func (r *subscriptionResolver) MessageAdded(ctx context.Context, channelID string) (<-chan *model.Message, error) {
 	id := uuid.New().String()
 	messageChannel := make(chan *model.Message)
-
-	fmt.Printf("MessageAdded subscription triggered for channel %s, subscriptionId=%s\n", channelID, id)
 
 	r.MU.Lock()
 	if r.Subscriptions[channelID] == nil {

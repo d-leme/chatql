@@ -98,6 +98,7 @@ func setupDatabase() (*sql.DB, error) {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS messages (
 		id TEXT PRIMARY KEY,
 		content TEXT NOT NULL,
+		owner TEXT NOT NULL,
 		created_at DATETIME NOT NULL,
 		channel_id TEXT NOT NULL,
 		FOREIGN KEY(channel_id) REFERENCES channels(id)
