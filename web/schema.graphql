@@ -1,0 +1,32 @@
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+type Channel {
+  id: ID!
+  name: String!
+}
+
+type Message {
+  content: String!
+  createdAt: Time!
+  id: ID!
+  owner: String!
+}
+
+type Mutation {
+  addMessage(channelID: ID!, content: String!): Message!
+  createChannel(name: String!): Channel!
+}
+
+type Query {
+  channels: [Channel!]!
+}
+
+type Subscription {
+  messageAdded(channelID: ID!): Message!
+}
+
+scalar Time

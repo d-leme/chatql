@@ -1,0 +1,26 @@
+scalar Time
+
+type Message {
+  id: ID!
+  content: String!
+  owner: String!
+  createdAt: Time!
+}
+
+type Channel {
+  id: ID!
+  name: String!
+}
+
+type Subscription {
+  messageAdded(channelID: ID!): Message!
+}
+
+type Query {
+  channels: [Channel!]!
+}
+
+type Mutation {
+  addMessage(channelID: ID!, content: String!): Message!
+  createChannel(name: String!): Channel!
+}
