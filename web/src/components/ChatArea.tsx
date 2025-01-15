@@ -1,19 +1,7 @@
 "use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { graphql } from "@/graphql";
-import { execute } from "@/graphql/execute";
-import {
-  GetMessagesQuery,
-  Message,
-  TypedDocumentString,
-} from "@/graphql/graphql";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useChannelMessages } from "@/hooks/useChannelMessages";
 import MessageInput from "./MessageInput";
-import {
-  useChannelMessages,
-  useReactQuerySubscription,
-} from "@/hooks/useChannelMessages";
 
 type ChatAreaProps = {
   channelId: string;
@@ -35,7 +23,7 @@ export default function ChatArea({ channelId }: ChatAreaProps) {
                 src={`https://api.dicebear.com/6.x/initials/svg?seed=${message.owner}`}
               />
               <AvatarFallback>
-                {(message.owner)
+                {message.owner
                   ?.split(" ")
                   ?.map((n) => n[0])
                   ?.join("")}

@@ -1,12 +1,10 @@
 import { graphql } from "@/graphql";
 import { execute } from "@/graphql/execute";
-import {
-  type TypedDocumentString,
-  type GetMessagesQuery,
-  type Message,
-} from "@/graphql/graphql";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { useRef, useEffect } from "react";
+import { type Message, type TypedDocumentString } from "@/graphql/graphql";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+
+const WS_URL = "ws://localhost:8080/query";
 
 const MessageAdded = graphql(`
   subscription messageAdded($channelID: ID!) {
@@ -30,8 +28,8 @@ const getMessagesQuery = graphql(`
   }
 `);
 
-function extractGraphqlOperation<T, TResult>(
-  query: string | TypedDocumentString<T, TResult>,
+function extractGraphqlOperation<T, TVariables>(
+  query: string | TypedDocumentString<T, TVariables>,
 ): string {
   const operation = query.split("{")[1]?.trim().split("(")[0];
 
@@ -42,20 +40,15 @@ function extractGraphqlOperation<T, TResult>(
   return operation;
 }
 
-export function useReactQuerySubscription<T, TResult>(
-  channelId: string,
-  query: TypedDocumentString<T, TResult>,
+export function useGraphQLSubscription<T, TVariables>(
+  query: TypedDocumentString<T, TVariables>,
+  variables: TVariables,
+  onMessage: (data: T) => void,
 ) {
   const webSocketRef = useRef<WebSocket>();
-  const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (webSocketRef.current) return;
-
-    const websocket = new WebSocket(
-      "ws://localhost:8080/query",
-      "graphql-transport-ws",
-    );
+    const websocket = new WebSocket(WS_URL, "graphql-transport-ws");
 
     websocket.onopen = () => {
       websocket.send(JSON.stringify({ type: "connection_init", payload: {} }));
@@ -64,9 +57,7 @@ export function useReactQuerySubscription<T, TResult>(
     webSocketRef.current = websocket;
 
     return () => {
-      if (websocket && websocket.readyState === WebSocket.OPEN) {
-        websocket.close();
-      }
+      websocket.close();
     };
   }, []);
 
@@ -75,44 +66,47 @@ export function useReactQuerySubscription<T, TResult>(
     if (!websocket) return;
 
     websocket.onmessage = (event) => {
-      if ((event.data as string).includes("connection_ack")) {
-        websocket.send(
-          JSON.stringify({
-            id: Math.random().toString(36).substring(2, 15),
-            type: "subscribe",
-            payload: {
-              query,
-              operationName: extractGraphqlOperation(query),
-              variables: {
-                channelID: channelId,
-              },
-            },
-          }),
-        );
-      } else {
-        const prevMessages = queryClient.getQueryData<
-          GetMessagesQuery,
-          string[],
-          GetMessagesQuery
-        >(["messages", channelId]);
-        queryClient.setQueryData(["messages", channelId], {
-          messages: [
-            ...(prevMessages?.messages ?? []),
-            JSON.parse(event.data)?.payload?.data?.messageAdded,
-          ],
-        });
+      const operationName = extractGraphqlOperation(query);
+
+      const isAckMessage = (event.data as string).includes("connection_ack");
+      if (!isAckMessage) {
+        onMessage(JSON.parse(event.data)?.payload?.data as T);
+        return;
       }
+
+      const subscriptionQuery = {
+        id: Math.random().toString(36).substring(2, 15),
+        type: "subscribe",
+        payload: {
+          query,
+          operationName,
+          variables,
+        },
+      };
+
+      websocket.send(JSON.stringify(subscriptionQuery));
     };
-  }, [channelId]);
+  }, [query, variables, onMessage]);
 }
 
 export function useChannelMessages(channelId: string): Message[] {
-  useReactQuerySubscription(channelId, MessageAdded);
+  const queryClient = useQueryClient();
+  useGraphQLSubscription(MessageAdded, { channelID: channelId }, (event) =>
+    queryClient.setQueryData<Message[]>(
+      ["messages", channelId],
+      (prevMessages) => [...(prevMessages ?? []), event.messageAdded],
+    ),
+  );
 
   const { data } = useQuery({
     queryKey: ["messages", channelId],
-    queryFn: () => execute(getMessagesQuery, { channelID: channelId }),
+    queryFn: async () => {
+      const queryResponse = await execute(getMessagesQuery, {
+        channelID: channelId,
+      });
+      return queryResponse.messages;
+    },
   });
 
-  return data?.messages ?? [];
+  return data ?? [];
 }
