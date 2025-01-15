@@ -1,4 +1,5 @@
 "use client";
+import Sidebar from "@/components/Sidebar";
 import "@/styles/globals.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Inter } from "next/font/google";
@@ -13,9 +14,8 @@ const inter = Inter({ subsets: ["latin"] });
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      staleTime: 1000 * 10, // 10 seconds
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
     },
   },
 });
@@ -29,7 +29,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} dark bg-gray-900 text-gray-100`}>
         <QueryClientProvider client={queryClient}>
-          {children}
+          <div className="flex h-screen bg-secondary">
+            <Sidebar />
+            <main className="flex flex-1 flex-col">{children}</main>
+          </div>
         </QueryClientProvider>
       </body>
     </html>

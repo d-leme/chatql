@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { graphql } from "@/graphql";
 import { execute } from "@/graphql/execute";
 import {
-  AddMessageMutation,
-  AddMessageMutationVariables,
+  type AddMessageMutation,
+  type AddMessageMutationVariables,
 } from "@/graphql/graphql";
 import { useMutation } from "@tanstack/react-query";
 import { Send } from "lucide-react";

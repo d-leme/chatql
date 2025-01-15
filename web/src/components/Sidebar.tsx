@@ -2,12 +2,13 @@
 import { graphql } from "@/graphql";
 import { execute } from "@/graphql/execute";
 import {
-  ChannelsQuery,
-  CreateChannelMutation,
-  CreateChannelMutationVariables,
+  type ChannelsQuery,
+  type CreateChannelMutation,
+  type CreateChannelMutationVariables,
 } from "@/graphql/graphql";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Hash, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import {
@@ -19,6 +20,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 const Channels = graphql(`
   query channels {
@@ -38,14 +40,11 @@ const createChannelMutation = graphql(`
   }
 `);
 
-type SidebarProps = {
-  onChannelSelect?: (channelId: string) => void;
-};
-
-export default function Sidebar({ onChannelSelect }: SidebarProps) {
+export default function Sidebar() {
   const [newChannelName, setNewChannelName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const { mutate } = useMutation<
     CreateChannelMutation,
@@ -81,6 +80,10 @@ export default function Sidebar({ onChannelSelect }: SidebarProps) {
     setNewChannelName("");
   };
 
+  const handleChannelSelect = (channelId: string) => {
+    router.replace(`/${channelId}`);
+  };
+
   return (
     <div className="flex h-full w-64 flex-col border-r border-gray-700 bg-gray-900 p-4 text-gray-300">
       <h1 className="mb-4 text-2xl font-bold text-white">Slack Clone</h1>
@@ -91,26 +94,40 @@ export default function Sidebar({ onChannelSelect }: SidebarProps) {
             <DialogTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white"
+                size="icon"
+                className="rounded-full p-1 text-gray-400 hover:bg-gray-700 hover:text-white"
               >
-                <Plus className="h-4 w-4" />
+                <Plus />
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gray-800 text-white">
+            <DialogContent className="border border-gray-700 bg-gray-800 text-white">
               <DialogHeader>
-                <DialogTitle>Create a new channel</DialogTitle>
+                <DialogTitle className="mb-2 text-lg font-semibold">
+                  Create a new channel
+                </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateChannel} className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Channel name"
-                  value={newChannelName}
-                  onChange={(e) => setNewChannelName(e.target.value)}
-                  className="border-gray-600 bg-gray-700 text-white"
-                />
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="channel-name"
+                    className="text-sm font-medium text-gray-300"
+                  >
+                    Channel name
+                  </Label>
+                  <Input
+                    id="channel-name"
+                    type="text"
+                    placeholder="e.g. marketing"
+                    value={newChannelName}
+                    onChange={(e) => setNewChannelName(e.target.value)}
+                    className="border-gray-600 bg-gray-700 text-white focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
                 <DialogClose asChild>
-                  <Button type="submit" className="w-full">
+                  <Button
+                    type="submit"
+                    className="w-full bg-green-600 text-white hover:bg-green-700"
+                  >
                     Create Channel
                   </Button>
                 </DialogClose>
@@ -123,7 +140,7 @@ export default function Sidebar({ onChannelSelect }: SidebarProps) {
             <li
               key={channel.id}
               className="mb-2 flex cursor-pointer items-center rounded p-2 transition-colors duration-150 hover:bg-gray-700"
-              onClick={() => onChannelSelect?.(channel.id)}
+              onClick={() => handleChannelSelect(channel.id)}
             >
               <Hash className="mr-2 h-4 w-4" />
               {channel.name}
