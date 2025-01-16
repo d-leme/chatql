@@ -1,8 +1,9 @@
 "use client";
 import { useCreateChannelMutation } from "@/hooks/useCreateChannelMutation";
 import { useGetChannelsQuery } from "@/hooks/useGetChannelsQuery";
+import { cn } from "@/lib/utils";
 import { Hash, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import {
@@ -18,6 +19,7 @@ import { Label } from "./ui/label";
 
 export default function Sidebar() {
   const router = useRouter();
+  const { id } = useParams();
   const { mutate } = useCreateChannelMutation();
 
   const [newChannelName, setNewChannelName] = useState("");
@@ -32,6 +34,7 @@ export default function Sidebar() {
   };
 
   const handleChannelSelect = (channelId: string) => {
+    if (id === channelId) return;
     router.push(`/${channelId}`);
   };
 
@@ -88,14 +91,17 @@ export default function Sidebar() {
         </div>
         <ul>
           {channels?.map((channel) => (
-            <li
+            <button
               key={channel.id}
-              className="mb-2 flex cursor-pointer items-center rounded p-2 transition-colors duration-150 hover:bg-gray-700"
               onClick={() => handleChannelSelect(channel.id)}
+              className={cn(
+                "mb-2 flex w-full items-center rounded p-2 text-left transition-colors duration-150 hover:bg-gray-700",
+                { "bg-gray-700": id === channel.id },
+              )}
             >
               <Hash className="mr-2 h-4 w-4" />
               {channel.name}
-            </li>
+            </button>
           ))}
         </ul>
       </div>
