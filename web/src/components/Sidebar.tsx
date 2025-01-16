@@ -1,12 +1,6 @@
 "use client";
-import { graphql } from "@/graphql";
-import { execute } from "@/graphql/execute";
-import {
-  type ChannelsQuery,
-  type CreateChannelMutation,
-  type CreateChannelMutationVariables,
-} from "@/graphql/graphql";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCreateChannelMutation } from "@/hooks/useCreateChannelMutation";
+import { useGetChannelsQuery } from "@/hooks/useGetChannelsQuery";
 import { Hash, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -22,57 +16,14 @@ import {
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
-const Channels = graphql(`
-  query channels {
-    channels {
-      id
-      name
-    }
-  }
-`);
-
-const createChannelMutation = graphql(`
-  mutation createChannel($name: String!) {
-    createChannel(name: $name) {
-      id
-      name
-    }
-  }
-`);
-
 export default function Sidebar() {
+  const router = useRouter();
+  const { mutate } = useCreateChannelMutation();
+
   const [newChannelName, setNewChannelName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
-  const router = useRouter();
 
-  const { mutate } = useMutation<
-    CreateChannelMutation,
-    Error,
-    CreateChannelMutationVariables
-  >({
-    mutationFn: async (variables) =>
-      execute(createChannelMutation, {
-        name: variables.name,
-      }),
-    onSuccess: ({ createChannel }) => {
-      queryClient.setQueryData<ChannelsQuery>(["channels"], (oldData) => {
-        const oldChannels = oldData?.channels ?? [];
-
-        return {
-          ...(oldData ?? {}),
-          channels: [...oldChannels, createChannel],
-        };
-      });
-    },
-  });
-
-  const { data } = useQuery({
-    queryKey: ["channels"],
-    queryFn: () => execute(Channels),
-  });
-
-  const { channels } = data ?? {};
+  const { data: channels } = useGetChannelsQuery();
 
   const handleCreateChannel = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +32,7 @@ export default function Sidebar() {
   };
 
   const handleChannelSelect = (channelId: string) => {
-    router.replace(`/${channelId}`);
+    router.push(`/${channelId}`);
   };
 
   return (

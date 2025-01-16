@@ -1,32 +1,7 @@
-import { graphql } from "@/graphql";
-import { execute } from "@/graphql/execute";
-import { type Message, type TypedDocumentString } from "@/graphql/graphql";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type TypedDocumentString } from "@/graphql/graphql";
 import { useEffect, useRef } from "react";
 
 const WS_URL = "ws://localhost:8080/query";
-
-const MessageAdded = graphql(`
-  subscription messageAdded($channelID: ID!) {
-    messageAdded(channelID: $channelID) {
-      id
-      content
-      owner
-      createdAt
-    }
-  }
-`);
-
-const getMessagesQuery = graphql(`
-  query getMessages($channelID: ID!) {
-    messages(channelID: $channelID) {
-      id
-      content
-      owner
-      createdAt
-    }
-  }
-`);
 
 function extractGraphqlOperation<T, TVariables>(
   query: string | TypedDocumentString<T, TVariables>,
@@ -40,11 +15,15 @@ function extractGraphqlOperation<T, TVariables>(
   return operation;
 }
 
-export function useGraphQLSubscription<T, TVariables>(
-  query: TypedDocumentString<T, TVariables>,
-  variables: TVariables,
-  onMessage: (data: T) => void,
-) {
+export function useGraphQLSubscription<T, TVariables>({
+  query,
+  variables,
+  onMessage,
+}: {
+  query: TypedDocumentString<T, TVariables>;
+  variables: TVariables;
+  onMessage: (data: T) => void;
+}) {
   const webSocketRef = useRef<WebSocket>();
 
   useEffect(() => {
@@ -87,26 +66,4 @@ export function useGraphQLSubscription<T, TVariables>(
       websocket.send(JSON.stringify(subscriptionQuery));
     };
   }, [query, variables, onMessage]);
-}
-
-export function useChannelMessages(channelId: string): Message[] {
-  const queryClient = useQueryClient();
-  useGraphQLSubscription(MessageAdded, { channelID: channelId }, (event) =>
-    queryClient.setQueryData<Message[]>(
-      ["messages", channelId],
-      (prevMessages) => [...(prevMessages ?? []), event.messageAdded],
-    ),
-  );
-
-  const { data } = useQuery({
-    queryKey: ["messages", channelId],
-    queryFn: async () => {
-      const queryResponse = await execute(getMessagesQuery, {
-        channelID: channelId,
-      });
-      return queryResponse.messages;
-    },
-  });
-
-  return data ?? [];
 }

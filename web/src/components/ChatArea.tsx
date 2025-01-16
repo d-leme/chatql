@@ -1,6 +1,6 @@
 "use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useChannelMessages } from "@/hooks/useChannelMessages";
+import { useMessageAddedSubscription } from "@/hooks/useMessageAddedSubscription";
 import MessageInput from "./MessageInput";
 
 type ChatAreaProps = {
@@ -8,7 +8,9 @@ type ChatAreaProps = {
 };
 
 export default function ChatArea({ channelId }: ChatAreaProps) {
-  const messages = useChannelMessages(channelId);
+  const { data: messages } = useMessageAddedSubscription({
+    channelID: channelId,
+  });
 
   return (
     <>

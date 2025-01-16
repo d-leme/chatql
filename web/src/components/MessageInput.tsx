@@ -2,52 +2,23 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { graphql } from "@/graphql";
-import { execute } from "@/graphql/execute";
-import {
-  type AddMessageMutation,
-  type AddMessageMutationVariables,
-} from "@/graphql/graphql";
-import { useMutation } from "@tanstack/react-query";
+import { useAddMessageMutation } from "@/hooks/useAddMessageMutation";
 import { Send } from "lucide-react";
 import { useState } from "react";
-
-const addMessageMutation = graphql(`
-  mutation addMessage($channelID: ID!, $content: String!) {
-    addMessage(channelID: $channelID, content: $content) {
-      id
-      content
-      owner
-      createdAt
-    }
-  }
-`);
 
 type MessageInputProps = {
   channelId: string;
 };
 
 export default function MessageInput({ channelId }: MessageInputProps) {
-  const [message, setMessage] = useState("");
+  const { mutate } = useAddMessageMutation();
 
-  const { mutate } = useMutation<
-    AddMessageMutation,
-    Error,
-    Pick<AddMessageMutationVariables, "content">
-  >({
-    mutationFn: async (variables) => {
-      const response = await execute(addMessageMutation, {
-        channelID: channelId,
-        content: variables.content,
-      });
-      return response;
-    },
-  });
+  const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Sending message:", message);
-    mutate({ content: message });
+
+    mutate({ channelID: channelId, content: message });
     setMessage("");
   };
 
